@@ -25,13 +25,17 @@ void HandleOptionInput()
             Console.WriteLine("Generating key..");
             byte[] keyBytes = new byte[32];
             RandomNumberGenerator.Fill(keyBytes);
-            BigInteger key = new BigInteger(keyBytes);
+            BigInteger fullKey = new BigInteger(keyBytes);
+            
+            // Create a shorter representation of the key
+            string shortKey = ConvertToShorterKey(fullKey);
+            
             Console.WriteLine("Done! Your Key is: ");
-            Console.WriteLine(key);
+            Console.WriteLine(shortKey);
             Console.WriteLine("Without the key, you CANNOT decrypt your text. Do NOT lose this key.");
             Console.WriteLine("Please input the text you want to encrypt: ");
             String? textToEncrypt = Console.ReadLine();
-            String encryptedText = Encrypt(textToEncrypt, key);
+            String encryptedText = Encrypt(textToEncrypt, fullKey);
             Console.WriteLine("Encrypted Text: " + encryptedText);
            
             GiveOptions();
@@ -40,8 +44,15 @@ void HandleOptionInput()
             Console.WriteLine("Please input the text you want to decrypt: ");
             String? textToDecrypt = Console.ReadLine();
             Console.WriteLine("Please input the key to decrypt the text: ");
-            String? keyText = Console.ReadLine();
-            BigInteger keyInt = BigInteger.Parse(keyText);
+            String? shortKeyInput = Console.ReadLine();
+            
+            if (shortKeyInput == null)
+            {
+                Console.WriteLine("Invalid key.");
+                Environment.Exit(0);
+            }
+            BigInteger keyInt = ConvertFromShorterKey(shortKeyInput);
+            
             String decryptedText = Decrypt(textToDecrypt, keyInt);
             Console.WriteLine("Decrypted Text: ");
             Console.WriteLine(decryptedText);
@@ -57,26 +68,39 @@ void HandleOptionInput()
     }
 }
 
+string ConvertToShorterKey(BigInteger key)
+{
+    // Convert to Base64 for compact representation
+    byte[] bytes = key.ToByteArray();
+    return Convert.ToBase64String(bytes);
+}
+
+BigInteger ConvertFromShorterKey(string shorterKey)
+{
+    byte[] bytes = Convert.FromBase64String(shorterKey);
+    return new BigInteger(bytes);
+}
+
 String Encrypt(string? text, BigInteger key)
 {
     if (text == null) return "ERROR";
-    
+
     byte[] textBytes = Encoding.UTF8.GetBytes(text);
     byte[] keyBytes = key.ToByteArray();
-    
+
     byte[] encryptedBytes = new byte[textBytes.Length];
     for (int i = 0; i < textBytes.Length; i++)
     {
         encryptedBytes[i] = (byte)(textBytes[i] ^ keyBytes[i % keyBytes.Length]);
     }
-    
+
     return Convert.ToBase64String(encryptedBytes);
 }
 
 String Decrypt(string? text, BigInteger key)
 {
     if (text == null) return "ERROR";
-    
+
     byte[] encryptedBytes = Convert.FromBase64String(text);
     byte[] keyBytes = key.ToByteArray();
     
@@ -85,5 +109,6 @@ String Decrypt(string? text, BigInteger key)
     {
         decryptedBytes[i] = (byte)(encryptedBytes[i] ^ keyBytes[i % keyBytes.Length]);
     }
+
     return Encoding.UTF8.GetString(decryptedBytes);
 }
